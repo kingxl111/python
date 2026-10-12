@@ -1,0 +1,19 @@
+[
+  {
+    "assignment_id": "lab-01-sum",
+    "title": "Сумма элементов списка",
+    "requirements": [
+      "Функция solve(numbers) возвращает сумму элементов",
+      "Решение сопровождается кратким пояснением"
+    ],
+    "template_code": "def solve(numbers):\n    pass\n\n\nif __name__ == \"__main__\":\n    print(solve([1, 2, 3]))\n"
+  },
+  {
+    "assignment_id": "lab-02-reverse",
+    "title": "Разворот строки",
+    "requirements": [
+      "Функция reverse(text) возвращает строку в обратном порядке"
+    ],
+    "template_code": ""
+  }
+]

@@ -1,0 +1,10 @@
+{"submission_id": "bad-001", "assignment_id": "lab-01-sum", "student_id": "student-03", "timestamp": "2026-10-01T10:15:00+03:00", "text": "Обрезанная запись", "code": "def solve(
+{"submission_id": "bad-002", "assignment_id": "lab-01-sum", "student_id": "", "timestamp": "2026-10-01T10:15:00+03:00", "text": "Пустой student_id", "code": "def solve(numbers):\n    return 0\n", "ai_declaration": {"used": false}}
+{"submission_id": "bad-003", "assignment_id": "lab-01-sum", "student_id": "student-04", "timestamp": "01.10.2026 10:15", "text": "Неверный timestamp", "code": "def solve(numbers):\n    return 0\n", "ai_declaration": {"used": false}}
+{"submission_id": "bad-004", "assignment_id": "lab-01-sum", "student_id": "student-05", "timestamp": "2026-10-01T10:15:00", "text": "Нет временной зоны", "code": "def solve(numbers):\n    return 0\n", "ai_declaration": {"used": false}}
+{"submission_id": "bad-005", "assignment_id": "lab-01-sum", "student_id": "student-06", "timestamp": "2026-10-01T10:15:00+03:00", "text": "Неизвестное поле", "code": "def solve(numbers):\n    return 0\n", "ai_declaration": {"used": false}, "grade": 10}
+{"submission_id": "bad-006", "assignment_id": "lab-01-sum", "student_id": 7, "timestamp": "2026-10-01T10:15:00+03:00", "text": "Неверные типы", "code": "def solve(numbers):\n    return 0\n", "ai_declaration": {"used": "yes"}}
+{"submission_id": "bad-007", "assignment_id": "lab-01-sum", "student_id": "student-08", "timestamp": "2026-10-01T10:15:00+03:00", "text": "Нет AI-декларации", "code": "def solve(numbers):\n    return 0\n"}
+{"submission_id": "bad-008", "assignment_id": "lab-99-unknown", "student_id": "student-09", "timestamp": "2026-10-01T10:15:00+03:00", "text": "Неизвестное задание", "code": "def solve(numbers):\n    return 0\n", "ai_declaration": {"used": false}}
+["не", "объект"]
+{"submission_id": "ok-001", "assignment_id": "lab-02-reverse", "student_id": "student-10", "timestamp": "2026-10-03T12:00:00+03:00", "text": "Корректная запись после ошибочных.", "code": "def reverse(text):\n    return ''.join(reversed(text))\n", "ai_declaration": {"used": false}}
