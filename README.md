@@ -34,6 +34,10 @@ pytest
 python scripts/benchmark_import.py
 ```
 
+Те же проверки запускает GitHub Actions `.github/workflows/ci.yml` на push в `main` и на
+pull request. Тесты идут на Python 3.12, 3.13 и 3.14. Если все проверки прошли, отдельная
+джоба собирает пакет, ставит wheel в чистое окружение и запускает CLI на `data/`.
+
 ## Формат данных
 
 Файлы в `data/` синтетические. Исходные `submissions.jsonl`, `invalid_submissions.jsonl`,
