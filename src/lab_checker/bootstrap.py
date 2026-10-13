@@ -1,30 +1,30 @@
-"""Сборка зависимостей приложения из конфигурации."""
+"""Сборка приложения из конфигурации."""
 
 from dataclasses import dataclass
 from pathlib import Path
 
 from lab_checker.analysis import AnalysisService, AnalyzerRegistry
 from lab_checker.analyzers import LengthAnalyzer, TemplateAnalyzer
-from lab_checker.errors import UnknownAnalyzerError
-from lab_checker.intake import IntakeService
+from lab_checker.errors import ConfigurationError, SubmissionError
 from lab_checker.models import Assignment
-from lab_checker.repositories import InMemoryAssignmentCatalog, InMemorySubmissionRepository
-from lab_checker.schemas import decode_json, parse_assignments
+from lab_checker.parsing import decode_json, parse_assignments
+from lab_checker.repositories import InMemorySubmissionRepository
+from lab_checker.services import SubmissionService
 
 DEFAULT_ANALYZERS = (LengthAnalyzer.analyzer_id, TemplateAnalyzer.analyzer_id)
 
 
 @dataclass(frozen=True, slots=True)
 class AppConfig:
-    assignments_path: Path
-    analyzer_ids: tuple[str, ...] = DEFAULT_ANALYZERS
+    analyzers: tuple[str, ...] = DEFAULT_ANALYZERS
 
 
 @dataclass(frozen=True, slots=True)
-class Container:
-    intake: IntakeService
-    analysis: AnalysisService
-    analyzer_ids: tuple[str, ...]
+class Application:
+    repository: InMemorySubmissionRepository
+    submission_service: SubmissionService
+    analysis_service: AnalysisService
+    analyzers: tuple[str, ...]
 
 
 def build_registry() -> AnalyzerRegistry:
@@ -35,20 +35,29 @@ def build_registry() -> AnalyzerRegistry:
     return registry
 
 
-def load_assignments(path: Path) -> tuple[Assignment, ...]:
-    return parse_assignments(decode_json(path.read_bytes()))
-
-
-def build_container(config: AppConfig, registry: AnalyzerRegistry | None = None) -> Container:
-    """Проверяет конфигурацию до первой обработки: неизвестный анализатор — ошибка сразу."""
+def build_application(
+    config: AppConfig | None = None, registry: AnalyzerRegistry | None = None
+) -> Application:
+    """Неизвестный анализатор в конфигурации — отказ до первого вызова."""
+    config = config if config is not None else AppConfig()
     registry = registry if registry is not None else build_registry()
-    for analyzer_id in config.analyzer_ids:
-        if analyzer_id not in registry:
-            raise UnknownAnalyzerError(analyzer_id)
-    catalog = InMemoryAssignmentCatalog(load_assignments(config.assignments_path))
-    submissions = InMemorySubmissionRepository()
-    return Container(
-        intake=IntakeService(submissions, catalog),
-        analysis=AnalysisService(submissions, catalog, registry),
-        analyzer_ids=config.analyzer_ids,
+    for name in config.analyzers:
+        if name not in registry:
+            raise ConfigurationError(f"Неизвестный анализатор в конфигурации: {name}")
+    repository = InMemorySubmissionRepository()
+    return Application(
+        repository=repository,
+        submission_service=SubmissionService(repository),
+        analysis_service=AnalysisService(repository, registry),
+        analyzers=config.analyzers,
     )
+
+
+def load_assignments(path: Path) -> dict[str, Assignment]:
+    try:
+        raw = decode_json(path.read_bytes())
+    except OSError as exc:
+        raise ConfigurationError(f"Файл заданий недоступен: {exc}") from exc
+    except SubmissionError as exc:
+        raise ConfigurationError(f"Файл заданий не является корректным JSON: {exc}") from exc
+    return parse_assignments(raw)

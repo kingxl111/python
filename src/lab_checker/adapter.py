@@ -1,17 +1,20 @@
 """Тестовый адаптер на месте будущего HTTP-интерфейса.
 
-Только здесь доменные результаты и исключения сопоставляются с кодами ответа.
+Только здесь коды доменных ошибок сопоставляются с кодами ответа.
 """
 
 from dataclasses import asdict, dataclass
 
-from lab_checker.errors import (
-    IntakeError,
-    MalformedPayloadError,
-    SchemaViolationError,
-    SubmissionConflictError,
-)
-from lab_checker.intake import IntakeService
+from lab_checker.errors import ErrorCode, SubmissionError
+from lab_checker.parsing import validate_submission_input
+from lab_checker.services import SubmissionService
+
+_STATUS_BY_ERROR: dict[ErrorCode, int] = {
+    "invalid_json": 400,
+    "schema_error": 422,
+    "unsupported_version": 422,
+    "conflict": 409,
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,31 +23,14 @@ class AdapterResponse:
     body: dict[str, object]
 
 
-_ERROR_STATUS: tuple[tuple[type[IntakeError], int], ...] = (
-    (MalformedPayloadError, 400),
-    (SchemaViolationError, 422),
-    (SubmissionConflictError, 409),
-)
-
-
 class SubmissionTestAdapter:
-    def __init__(self, intake: IntakeService) -> None:
-        self._intake = intake
+    def __init__(self, service: SubmissionService) -> None:
+        self._service = service
 
-    def post_submission(self, body: str | bytes) -> AdapterResponse:
+    def accept_payload(self, payload: object) -> AdapterResponse:
         try:
-            result = self._intake.submit_json(body)
-        except IntakeError as exc:
-            status = next((code for kind, code in _ERROR_STATUS if isinstance(exc, kind)), 422)
-            return AdapterResponse(
-                status_code=status,
-                body={"errors": [asdict(issue) for issue in exc.issues]},
-            )
-        return AdapterResponse(
-            status_code=201 if result.status == "accepted" else 200,
-            body={
-                "status": result.status,
-                "submission_id": result.submission.submission_id,
-                "submission_hash": result.submission.submission_hash,
-            },
-        )
+            dto = validate_submission_input(payload)
+            result = self._service.accept_submission(dto.to_domain())
+        except SubmissionError as exc:
+            return AdapterResponse(_STATUS_BY_ERROR[exc.code], {"error": exc.to_dict()})
+        return AdapterResponse(201 if result.status == "accepted" else 200, asdict(result))

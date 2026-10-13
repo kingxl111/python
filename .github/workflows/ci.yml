@@ -85,7 +85,7 @@ jobs:
           "$RUNNER_TEMP/clean/bin/lab-checker" import \
             "$GITHUB_WORKSPACE/data/submissions.jsonl" \
             --assignments "$GITHUB_WORKSPACE/data/assignments.json" > result.json
-          "$RUNNER_TEMP/clean/bin/python" -c "import json; r = json.load(open('result.json')); assert r['accepted'] == ['sub-001', 'sub-002', 'sub-003'], r"
+          "$RUNNER_TEMP/clean/bin/python" -c "import json; r = json.load(open('result.json')); assert r['accepted'] == [f'sub-{n:03d}' for n in range(1, 13)] and len(r['reports']) == 24, r"
       - uses: actions/upload-artifact@v4
         with:
           name: dist

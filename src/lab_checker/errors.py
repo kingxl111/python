@@ -1,67 +1,24 @@
 """Доменные ошибки. Коды ответов внешних интерфейсов здесь не определяются."""
 
-from collections.abc import Sequence
-from dataclasses import dataclass
+from typing import Literal
+
+ErrorCode = Literal["invalid_json", "schema_error", "unsupported_version", "conflict"]
 
 
-@dataclass(frozen=True, slots=True)
-class ValidationIssue:
-    code: str
-    field: str
-    message: str
+class SubmissionError(Exception):
+    def __init__(self, code: ErrorCode, field: str, message: str) -> None:
+        super().__init__(message)
+        self.code: ErrorCode = code
+        self.field = field
+        self.message = message
+
+    def to_dict(self) -> dict[str, str]:
+        return {"code": self.code, "field": self.field, "message": self.message}
 
 
-class IntakeError(Exception):
-    """Сдача не принята. Причины перечислены в ``issues``."""
-
-    def __init__(self, issues: Sequence[ValidationIssue]) -> None:
-        if not issues:
-            raise ValueError("IntakeError требует хотя бы одну причину")
-        self.issues = tuple(issues)
-        super().__init__("; ".join(f"{issue.field}: {issue.message}" for issue in self.issues))
+class AnalysisFailure(Exception):
+    """Анализ невозможен либо его результат нарушает контракт отчёта."""
 
 
-class MalformedPayloadError(IntakeError):
-    """Ошибка формата: запись не разбирается как JSON."""
-
-
-class SchemaViolationError(IntakeError):
-    """JSON разобран, но не соответствует схеме сдачи."""
-
-
-class SubmissionConflictError(IntakeError):
-    """``submission_id`` уже занят сдачей с другим содержимым."""
-
-    def __init__(self, submission_id: str) -> None:
-        super().__init__(
-            [
-                ValidationIssue(
-                    code="submission_conflict",
-                    field="submission_id",
-                    message=f"сдача {submission_id!r} уже принята с другим содержимым",
-                )
-            ]
-        )
-        self.submission_id = submission_id
-
-
-class AnalysisError(Exception):
-    """Анализ нельзя запустить."""
-
-
-class UnknownAnalyzerError(AnalysisError):
-    def __init__(self, analyzer_id: str) -> None:
-        super().__init__(f"анализатор {analyzer_id!r} не зарегистрирован")
-        self.analyzer_id = analyzer_id
-
-
-class SubmissionNotFoundError(AnalysisError):
-    def __init__(self, submission_id: str) -> None:
-        super().__init__(f"сдача {submission_id!r} не найдена")
-        self.submission_id = submission_id
-
-
-class AssignmentNotFoundError(AnalysisError):
-    def __init__(self, assignment_id: str) -> None:
-        super().__init__(f"задание {assignment_id!r} не найдено")
-        self.assignment_id = assignment_id
+class ConfigurationError(Exception):
+    """Конфигурация приложения некорректна; обнаруживается до обработки данных."""

@@ -1,246 +1,156 @@
 from dataclasses import replace
+from typing import Any
 
 import pytest
-from conftest import PayloadFactory
+from conftest import PUBLIC_SUBMISSIONS, RAW_EXAMPLE
 
-from lab_checker.analysis import AnalysisContext, AnalysisService, AnalyzerRegistry
-from lab_checker.bootstrap import build_registry
-from lab_checker.errors import (
-    AssignmentNotFoundError,
-    SubmissionNotFoundError,
-    UnknownAnalyzerError,
+from lab_checker.analysis import (
+    AnalysisContext,
+    AnalysisService,
+    AnalyzerRegistry,
+    validate_report,
 )
-from lab_checker.intake import IntakeService
-from lab_checker.models import AnalysisFailure, AnalysisReport, Evidence, Submission
-from lab_checker.repositories import InMemoryAssignmentCatalog, InMemorySubmissionRepository
+from lab_checker.analyzers import LengthAnalyzer
+from lab_checker.bootstrap import AppConfig, Application, build_application, build_registry
+from lab_checker.errors import AnalysisFailure, ConfigurationError
+from lab_checker.models import AnalysisReport, Assignment, Evidence, Finding, Submission
+from lab_checker.repositories import InMemorySubmissionRepository
+from lab_checker.services import SubmissionService, import_source
+from lab_checker.sources import InMemorySource
 
 
-class FailingAnalyzer:
-    analyzer_id = "failing"
-    analyzer_version = "0.1.0"
+def test_end_to_end(app: Application, context: AnalysisContext) -> None:
+    summary = import_source(InMemorySource(PUBLIC_SUBMISSIONS), app.submission_service)
+    reports = 0
+    for submission_id in summary.accepted:
+        original = app.repository.get(submission_id)
+        assert original is not None
+        for name in ("length", "template"):
+            report = app.analysis_service.run(submission_id, name, context)
+            validate_report(report, original, context)
+            assert app.repository.get(submission_id) == original
+            reports += 1
 
-    def analyze(self, submission: Submission, context: AnalysisContext) -> AnalysisReport:
-        raise RuntimeError("сбой анализатора")
-
-
-class OutOfRangeAnalyzer:
-    analyzer_id = "out-of-range"
-    analyzer_version = "0.1.0"
-
-    def analyze(self, submission: Submission, context: AnalysisContext) -> AnalysisReport:
-        return AnalysisReport(
-            submission_id=submission.submission_id,
-            analyzer_id=self.analyzer_id,
-            analyzer_version=self.analyzer_version,
-            score=None,
-            similarity=1.5,
-            rubric_feedback=("x",),
-            evidence=(Evidence("code", 1, 999, "нет такой строки"),),
-        )
+    assert reports == 24
 
 
-class MalformedAnalyzer:
-    analyzer_id = "malformed"
-    analyzer_version = "0.1.0"
-
-    def analyze(self, submission: Submission, context: AnalysisContext) -> AnalysisReport:
-        return AnalysisReport(
-            submission_id=submission.submission_id,
-            analyzer_id=self.analyzer_id,
-            analyzer_version=self.analyzer_version,
-            score=float("nan"),
-            similarity="0.5",  # type: ignore[arg-type]
-            rubric_feedback=("x", 1),  # type: ignore[arg-type]
-            evidence=(("code", 1, 1),),  # type: ignore[arg-type]
-        )
-
-
-class BrokenConstructorAnalyzer:
-    analyzer_id = "broken-constructor"
-    analyzer_version = "0.1.0"
-
-    def __init__(self) -> None:
-        raise RuntimeError("нет конфигурации")
-
-    def analyze(self, submission: Submission, context: AnalysisContext) -> AnalysisReport:
-        raise AssertionError("не должен вызываться")
-
-
-class DeclarationAnalyzer:
-    """Пример внешнего анализатора, подключаемого без изменения сервиса."""
-
-    analyzer_id = "ai-declaration"
-    analyzer_version = "0.1.0"
-
-    def analyze(self, submission: Submission, context: AnalysisContext) -> AnalysisReport:
-        declaration = submission.ai_declaration
-        missing = declaration.used and not (declaration.description or "").strip()
-        return AnalysisReport(
-            submission_id=submission.submission_id,
-            analyzer_id=self.analyzer_id,
-            analyzer_version=self.analyzer_version,
-            score=None,
-            similarity=None,
-            rubric_feedback=("декларация пуста" if missing else "декларация в порядке",),
-        )
-
-
-@pytest.fixture
-def registry() -> AnalyzerRegistry:
-    registry = build_registry()
-    registry.register(FailingAnalyzer.analyzer_id, FailingAnalyzer)
-    registry.register(OutOfRangeAnalyzer.analyzer_id, OutOfRangeAnalyzer)
-    registry.register(MalformedAnalyzer.analyzer_id, MalformedAnalyzer)
-    registry.register(BrokenConstructorAnalyzer.analyzer_id, BrokenConstructorAnalyzer)
-    return registry
-
-
-@pytest.fixture
-def service(
-    repository: InMemorySubmissionRepository,
-    catalog: InMemoryAssignmentCatalog,
-    registry: AnalyzerRegistry,
-) -> AnalysisService:
-    return AnalysisService(repository, catalog, registry)
-
-
-@pytest.fixture
-def submission(intake: IntakeService, make_payload: PayloadFactory) -> Submission:
-    return intake.submit(make_payload()).submission
-
-
-def test_runs_selected_analyzers_in_order(service: AnalysisService, submission: Submission) -> None:
-    outcomes = service.analyze(submission.submission_id, ["template", "length"])
-
-    assert [(type(o), o.analyzer_id) for o in outcomes] == [
-        (AnalysisReport, "template"),
-        (AnalysisReport, "length"),
-    ]
-
-
-def test_analyzer_error_does_not_affect_others(
-    service: AnalysisService, submission: Submission
+def test_run_requires_accepted_submission_and_matching_context(
+    app: Application, context: AnalysisContext
 ) -> None:
-    outcomes = service.analyze(submission.submission_id, ["length", "failing", "template"])
+    with pytest.raises(AnalysisFailure):
+        app.analysis_service.run("sub-001", "length", context)
 
-    assert isinstance(outcomes[0], AnalysisReport)
-    assert outcomes[1] == AnalysisFailure(
-        submission_id="sub-001",
-        analyzer_id="failing",
-        code="analyzer_error",
-        message="RuntimeError: сбой анализатора",
-    )
-    assert isinstance(outcomes[2], AnalysisReport)
+    app.submission_service.accept(RAW_EXAMPLE)
+    with pytest.raises(AnalysisFailure):
+        app.analysis_service.run("sub-001", "length", AnalysisContext(Assignment("other", "", ())))
+    with pytest.raises(AnalysisFailure):
+        app.analysis_service.run("sub-001", "missing", context)
 
 
-def test_invalid_report_is_rejected(service: AnalysisService, submission: Submission) -> None:
-    (outcome,) = service.analyze(submission.submission_id, ["out-of-range"])
+class BrokenHashAnalyzer:
+    analyzer_id = "broken"
+    analyzer_version = "1.0"
 
-    assert isinstance(outcome, AnalysisFailure)
-    assert outcome.code == "invalid_report"
-    assert "similarity" in outcome.message
-    assert "code:1-999" in outcome.message
-
-
-def test_report_with_wrong_types_is_rejected(
-    service: AnalysisService, submission: Submission
-) -> None:
-    (outcome,) = service.analyze(submission.submission_id, ["malformed"])
-
-    assert isinstance(outcome, AnalysisFailure)
-    assert outcome.code == "invalid_report"
-    for fragment in ("score", "similarity", "rubric_feedback", "ожидался Evidence"):
-        assert fragment in outcome.message
+    def analyze(self, submission: Submission, context: AnalysisContext) -> AnalysisReport:
+        good = LengthAnalyzer().analyze(submission, context)
+        return replace(good, submission_hash="incorrect")
 
 
-def test_analyzer_construction_error_does_not_affect_others(
-    service: AnalysisService, submission: Submission
-) -> None:
-    outcomes = service.analyze(submission.submission_id, ["broken-constructor", "length"])
+class CrashingAnalyzer:
+    analyzer_id = "crash"
+    analyzer_version = "1.0"
 
-    assert outcomes[0] == AnalysisFailure(
-        submission_id="sub-001",
-        analyzer_id="broken-constructor",
-        code="analyzer_error",
-        message="RuntimeError: нет конфигурации",
-    )
-    assert isinstance(outcomes[1], AnalysisReport)
+    def analyze(self, submission: Submission, context: AnalysisContext) -> AnalysisReport:
+        raise RuntimeError("сбой")
 
 
-def test_unknown_analyzer_fails_before_running_any(
-    repository: InMemorySubmissionRepository,
-    catalog: InMemoryAssignmentCatalog,
-    submission: Submission,
-) -> None:
-    calls: list[str] = []
+class WrongVersionAnalyzer:
+    analyzer_id = "length"
+    analyzer_version = "2.0"
 
-    class Recording(DeclarationAnalyzer):
-        def analyze(self, submission: Submission, context: AnalysisContext) -> AnalysisReport:
-            calls.append(submission.submission_id)
-            return super().analyze(submission, context)
+    def analyze(self, submission: Submission, context: AnalysisContext) -> AnalysisReport:
+        return LengthAnalyzer().analyze(submission, context)
 
+
+def failing_factory() -> LengthAnalyzer:
+    raise RuntimeError("конструктор упал")
+
+
+@pytest.mark.parametrize(
+    ("name", "factory"),
+    [
+        ("broken", BrokenHashAnalyzer),
+        ("crash", CrashingAnalyzer),
+        ("length", WrongVersionAnalyzer),
+        ("other-id", LengthAnalyzer),
+        ("factory", failing_factory),
+    ],
+)
+def test_defective_analyzer_is_stopped(name: str, factory: Any, context: AnalysisContext) -> None:
+    repository = InMemorySubmissionRepository()
+    SubmissionService(repository).accept(RAW_EXAMPLE)
     registry = AnalyzerRegistry()
-    registry.register(Recording.analyzer_id, Recording)
-    service = AnalysisService(repository, catalog, registry)
+    registry.register(name, factory)
 
-    with pytest.raises(UnknownAnalyzerError):
-        service.analyze(submission.submission_id, ["ai-declaration", "missing"])
-    assert calls == []
+    with pytest.raises(AnalysisFailure):
+        AnalysisService(repository, registry).run("sub-001", name, context)
 
 
-def test_new_analyzer_is_plugged_in_through_registry_only(
-    repository: InMemorySubmissionRepository,
-    catalog: InMemoryAssignmentCatalog,
-    registry: AnalyzerRegistry,
-    intake: IntakeService,
-    make_payload: PayloadFactory,
-) -> None:
-    registry.register(DeclarationAnalyzer.analyzer_id, DeclarationAnalyzer)
-    service = AnalysisService(repository, catalog, registry)
-    intake.submit(
-        make_payload(submission_id="empty", ai_declaration={"used": True, "description": " "})
-    )
-
-    (outcome,) = service.analyze("empty", ["ai-declaration"])
-
-    assert isinstance(outcome, AnalysisReport)
-    assert outcome.rubric_feedback == ("декларация пуста",)
-
-
-def test_unknown_submission(service: AnalysisService) -> None:
-    with pytest.raises(SubmissionNotFoundError):
-        service.analyze("nope", ["length"])
-
-
-def test_assignment_removed_after_intake(
-    repository: InMemorySubmissionRepository, registry: AnalyzerRegistry, submission: Submission
-) -> None:
-    service = AnalysisService(repository, InMemoryAssignmentCatalog([]), registry)
-
-    with pytest.raises(AssignmentNotFoundError):
-        service.analyze(submission.submission_id, ["length"])
-
-
-def test_analysis_does_not_change_stored_submission(
-    service: AnalysisService, repository: InMemorySubmissionRepository, submission: Submission
-) -> None:
-    before = replace(submission)
-
-    service.analyze(submission.submission_id, ["length", "template", "failing"])
-
-    assert repository.get(submission.submission_id) == before
-
-
-def test_registry_rejects_duplicate_registration() -> None:
+def test_registry_rejects_bad_names() -> None:
     registry = build_registry()
 
-    with pytest.raises(ValueError, match="уже зарегистрирован"):
-        registry.register("length", DeclarationAnalyzer)
+    with pytest.raises(AnalysisFailure):
+        registry.register("length", LengthAnalyzer)
+    with pytest.raises(AnalysisFailure):
+        registry.register(" ", LengthAnalyzer)
 
 
-def test_registry_rejects_factory_with_other_id() -> None:
-    registry = AnalyzerRegistry()
-    registry.register("length", DeclarationAnalyzer)
+def test_unknown_analyzer_in_config_fails_before_use() -> None:
+    with pytest.raises(ConfigurationError):
+        build_application(AppConfig(analyzers=("length", "nope")))
 
-    with pytest.raises(ValueError, match="создала анализатор"):
-        registry.create("length")
+
+def report_with(submission: Submission, context: AnalysisContext, **changes: Any) -> AnalysisReport:
+    return replace(LengthAnalyzer().analyze(submission, context), **changes)
+
+
+def finding_with(**changes: Any) -> tuple[Finding, ...]:
+    return (replace(Finding("rubric_feedback", None, (), "ok"), **changes),)
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"submission_id": "other"},
+        {"config_hash": "other"},
+        {"report_id": ""},
+        {"review_required": 1},
+        {"created_at": "2026-09-01T10:00:00"},
+        {"created_at": "вчера"},
+        {"findings": finding_with(kind="verdict")},
+        {"findings": finding_with(score=1.5)},
+        {"findings": finding_with(score=float("nan"))},
+        {"findings": finding_with(score=True)},
+        {"findings": finding_with(explanation=" ")},
+        {"findings": finding_with(evidence=(Evidence("sub-001", "code", 1, 99),))},
+        {"findings": finding_with(evidence=(Evidence("sub-001", "code", 0, 1),))},
+        {"findings": finding_with(evidence=(Evidence("sub-002", "code", 1, 1),))},
+        {"findings": finding_with(evidence=(Evidence("sub-001", "code", 2, 1),))},
+        {"findings": ("not a finding",)},
+        {"findings": finding_with(kind=["similarity"])},
+    ],
+)
+def test_validate_report_rejects(
+    changes: dict[str, Any], submission: Submission, context: AnalysisContext
+) -> None:
+    with pytest.raises(AnalysisFailure):
+        validate_report(report_with(submission, context, **changes), submission, context)
+
+
+def test_config_hash_depends_on_assignment(assignment: Assignment) -> None:
+    first = AnalysisContext(assignment)
+    other = AnalysisContext(replace(assignment, allowed_template=""))
+
+    assert first.config_hash == AnalysisContext(assignment).config_hash
+    assert first.config_hash != other.config_hash
+    assert first.config_payload()["mode"] == "baseline"
