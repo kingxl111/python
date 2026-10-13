@@ -1,97 +1,67 @@
 """Встроенные анализаторы."""
 
-from collections.abc import Iterable
-
-from lab_checker.analysis import AnalysisContext
-from lab_checker.models import AnalysisReport, Evidence, Submission, split_lines
-
-
-def _count_non_blank(content: str) -> int:
-    return sum(1 for line in split_lines(content) if line.strip())
+from lab_checker.analysis import AnalysisContext, make_report
+from lab_checker.errors import AnalysisFailure
+from lab_checker.models import AnalysisReport, Evidence, Finding, Submission
 
 
-def _consecutive_ranges(numbers: Iterable[int]) -> list[tuple[int, int]]:
-    ranges: list[tuple[int, int]] = []
-    for number in numbers:
-        if ranges and ranges[-1][1] == number - 1:
-            ranges[-1] = (ranges[-1][0], number)
-        else:
-            ranges.append((number, number))
-    return ranges
+def nonempty_line_numbers(text: str) -> tuple[int, ...]:
+    return tuple(number for number, line in enumerate(text.splitlines(), 1) if line.strip())
+
+
+def template_ranges(source_code: str, template: str) -> tuple[tuple[int, int], ...]:
+    """Диапазоны строк кода, где шаблон совпадает целиком; пробелы не нормализуются."""
+    if not template.strip():
+        return ()
+    source_lines = source_code.splitlines()
+    template_lines = template.splitlines()
+    width = len(template_lines)
+    return tuple(
+        (index + 1, index + width)
+        for index in range(len(source_lines) - width + 1)
+        if source_lines[index : index + width] == template_lines
+    )
 
 
 class LengthAnalyzer:
-    """Считает непустые строки текста и кода. Оценку не выставляет."""
-
     analyzer_id = "length"
-    analyzer_version = "1.0.0"
+    analyzer_version = "1.0"
 
     def analyze(self, submission: Submission, context: AnalysisContext) -> AnalysisReport:
-        text_lines = _count_non_blank(submission.text)
-        code_lines = _count_non_blank(submission.code)
-        return AnalysisReport(
-            submission_id=submission.submission_id,
-            analyzer_id=self.analyzer_id,
-            analyzer_version=self.analyzer_version,
+        text_lines = nonempty_line_numbers(submission.text)
+        code_lines = nonempty_line_numbers(submission.code)
+        evidence = tuple(
+            Evidence(submission.submission_id, "text", n, n) for n in text_lines
+        ) + tuple(Evidence(submission.submission_id, "code", n, n) for n in code_lines)
+        finding = Finding(
+            kind="rubric_feedback",
             score=None,
-            similarity=None,
-            rubric_feedback=(
-                f"Непустых строк текста: {text_lines}.",
-                f"Непустых строк кода: {code_lines}.",
-                "Объём не определяет качество работы, поэтому оценка не выставляется.",
+            evidence=evidence,
+            explanation=(
+                f"Непустые строки: text={len(text_lines)}, code={len(code_lines)}. "
+                "Длина не оценивает корректность решения."
             ),
         )
+        return make_report(submission, context, self.analyzer_id, self.analyzer_version, (finding,))
 
 
 class TemplateAnalyzer:
-    """Находит в коде строки, точно совпадающие со строками разрешённого шаблона.
-
-    ``similarity`` — доля непустых строк кода, совпавших с шаблоном. Пустые строки
-    не учитываются ни в коде, ни в шаблоне.
-    """
-
     analyzer_id = "template"
-    analyzer_version = "1.0.0"
+    analyzer_version = "1.0"
 
     def analyze(self, submission: Submission, context: AnalysisContext) -> AnalysisReport:
-        template = {line for line in split_lines(context.assignment.template_code) if line.strip()}
-        code_lines = split_lines(submission.code)
-        candidates = [number for number, line in enumerate(code_lines, start=1) if line.strip()]
-        matched = [number for number in candidates if code_lines[number - 1] in template]
-
-        if not candidates:
-            similarity = None
-            feedback = "В коде нет непустых строк: сходство с шаблоном не вычисляется."
-        elif not template:
-            similarity = 0.0
-            feedback = "У задания нет разрешённого шаблона: совпадений нет."
-        else:
-            similarity = len(matched) / len(candidates)
-            feedback = (
-                f"С разрешённым шаблоном совпадает {len(matched)} из {len(candidates)} "
-                "непустых строк кода."
-            )
-        rubric_feedback = [feedback]
-        if matched:
-            rubric_feedback.append(
-                "Использование разрешённого шаблона допустимо: совпадение не является нарушением."
-            )
-
+        if submission.assignment_id != context.assignment.assignment_id:
+            raise AnalysisFailure("Контекст относится к другому заданию")
+        ranges = template_ranges(submission.code, context.assignment.allowed_template)
         evidence = tuple(
-            Evidence(
-                source="code",
-                start_line=start,
-                end_line=end,
-                note="строки совпадают с разрешённым шаблоном задания",
-            )
-            for start, end in _consecutive_ranges(matched)
+            Evidence(submission.submission_id, "code", start, end) for start, end in ranges
         )
-        return AnalysisReport(
-            submission_id=submission.submission_id,
-            analyzer_id=self.analyzer_id,
-            analyzer_version=self.analyzer_version,
-            score=None,
-            similarity=similarity,
-            rubric_feedback=tuple(rubric_feedback),
-            evidence=evidence,
+        explanation = (
+            f"Найдены разрешённые блоки шаблона: {len(ranges)}. "
+            "Это допустимое совпадение, а не основание санкции."
+            if ranges
+            else "Точное совпадение с разрешённым шаблоном не найдено. "
+            "Нечёткое сходство не проверялось."
         )
+        finding = Finding("similarity", None, evidence, explanation)
+        return make_report(submission, context, self.analyzer_id, self.analyzer_version, (finding,))

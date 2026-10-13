@@ -1,121 +1,82 @@
-"""Контрактные тесты источников: одинаковые проверки для JSONL и in-memory."""
+"""Одинаковый контракт для JSONL и in-memory источников."""
 
+import json
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
 import pytest
-from conftest import PayloadFactory, to_line
+from conftest import PUBLIC_SUBMISSIONS, RAW_EXAMPLE
 
-from lab_checker.intake import ImportReport, IntakeService
-from lab_checker.repositories import InMemoryAssignmentCatalog, InMemorySubmissionRepository
-from lab_checker.sources import InMemorySubmissionSource, JsonlSubmissionSource
+from lab_checker.sources import InMemorySource, JSONLSource, SubmissionSource
 
-Source = JsonlSubmissionSource | InMemorySubmissionSource
-SourceFactory = Callable[[Sequence[str]], Source]
-
-
-def jsonl_source(directory: Path, lines: Sequence[str]) -> JsonlSubmissionSource:
-    path = directory / "submissions.jsonl"
-    path.write_text("\n".join(lines), encoding="utf-8")
-    return JsonlSubmissionSource(path)
+SourceFactory = Callable[[Sequence[object]], SubmissionSource]
 
 
 @pytest.fixture(params=["jsonl", "memory"])
 def make_source(request: pytest.FixtureRequest, tmp_path: Path) -> SourceFactory:
-    if request.param == "jsonl":
-        return lambda lines: jsonl_source(tmp_path, lines)
-    return InMemorySubmissionSource
+    def jsonl(values: Sequence[object]) -> SubmissionSource:
+        path = tmp_path / "submissions.jsonl"
+        path.write_text("".join(json.dumps(v) + "\n" for v in values), encoding="utf-8")
+        return JSONLSource(path)
+
+    return jsonl if request.param == "jsonl" else InMemorySource
 
 
-def import_all(source: Source, catalog: InMemoryAssignmentCatalog) -> ImportReport:
-    intake = IntakeService(InMemorySubmissionRepository(), catalog)
-    with source:
-        return intake.import_records(source.records())
+def test_source_contract(make_source: SourceFactory) -> None:
+    with make_source(PUBLIC_SUBMISSIONS).open() as records:
+        loaded = list(records)
+
+    assert [r.line_no for r in loaded] == list(range(1, len(PUBLIC_SUBMISSIONS) + 1))
+    assert [r.raw for r in loaded] == PUBLIC_SUBMISSIONS
+    assert all(r.error is None for r in loaded)
 
 
-def test_records_keep_line_numbers_and_skip_blank_lines(
-    make_source: SourceFactory, make_payload: PayloadFactory, catalog: InMemoryAssignmentCatalog
-) -> None:
-    lines = [
-        "",
-        to_line(make_payload()),
-        "   ",
-        "{broken",
-        to_line(make_payload(submission_id="b")),
-    ]
+def test_records_are_copies(make_source: SourceFactory) -> None:
+    source = make_source([RAW_EXAMPLE])
 
-    report = import_all(make_source(lines), catalog)
+    with source.open() as records:
+        record = next(records)
+    assert isinstance(record.raw, dict)
+    record.raw["text"] = "изменено"
 
-    assert report.accepted == ("sub-001", "b")
-    assert [(error.line, error.issues[0].code) for error in report.errors] == [(4, "invalid_json")]
+    with source.open() as records:
+        assert next(records).raw == RAW_EXAMPLE
 
 
-def test_records_require_open_source(make_source: SourceFactory) -> None:
-    with pytest.raises(RuntimeError):
-        make_source(["{}"]).records()
+def test_jsonl_is_closed_after_early_exit(tmp_path: Path) -> None:
+    path = tmp_path / "submissions.jsonl"
+    path.write_text("{}\n{}\n", encoding="utf-8")
+
+    with JSONLSource(path).open() as records:
+        next(records)
+
+    with pytest.raises(ValueError):
+        next(records)
 
 
-def test_source_cannot_be_entered_twice(make_source: SourceFactory) -> None:
-    source = make_source(["{}"])
+def test_jsonl_is_closed_after_consumer_error(tmp_path: Path) -> None:
+    path = tmp_path / "submissions.jsonl"
+    path.write_text("{}\n", encoding="utf-8")
 
-    with source, pytest.raises(RuntimeError):
-        source.__enter__()
-
-
-def test_source_is_closed_after_error(
-    make_source: SourceFactory, make_payload: PayloadFactory
-) -> None:
-    source = make_source([to_line(make_payload())])
-
-    with pytest.raises(ZeroDivisionError), source:
-        next(source.records())
+    with pytest.raises(ZeroDivisionError), JSONLSource(path).open() as records:
         _ = 1 / 0
 
-    assert source.closed
+    with pytest.raises(ValueError):
+        next(records)
 
 
-def test_source_is_closed_after_early_stop(make_source: SourceFactory) -> None:
-    source = make_source(["{}", "{}", "{}"])
-
-    with source:
-        for record in source.records():
-            if record.line == 1:
-                break
-
-    assert source.closed
-
-
-def test_jsonl_and_memory_sources_give_same_import(
-    tmp_path: Path, make_payload: PayloadFactory, catalog: InMemoryAssignmentCatalog
-) -> None:
-    lines = [
-        to_line(make_payload()),
-        "[]",
-        to_line(make_payload()),
-        to_line(make_payload(text="x")),
-    ]
-
-    from_file = import_all(jsonl_source(tmp_path, lines), catalog)
-    from_memory = import_all(InMemorySubmissionSource(lines), catalog)
-
-    assert from_file == from_memory
-    assert from_file.accepted == ("sub-001",)
-    assert from_file.duplicate == ("sub-001",)
-    assert [error.issues[0].code for error in from_file.errors] == [
-        "invalid_type",
-        "submission_conflict",
-    ]
-
-
-def test_jsonl_line_with_bad_encoding_does_not_stop_import(
-    tmp_path: Path, make_payload: PayloadFactory, catalog: InMemoryAssignmentCatalog
-) -> None:
+def test_jsonl_line_errors_do_not_stop_reading(tmp_path: Path) -> None:
     path = tmp_path / "mixed.jsonl"
-    path.write_bytes(
-        b'{"text": "\xc3\x28"}\r\n' + to_line(make_payload()).encode("utf-8") + b"\r\n"
-    )
+    path.write_bytes(b'{"text": "\xc3\x28"}\r\n\r\n   \n{"a": 1, "a": 2}\n{}\r\n')
 
-    report = import_all(JsonlSubmissionSource(path), catalog)
+    with JSONLSource(path).open() as records:
+        loaded = list(records)
 
-    assert report.accepted == ("sub-001",)
-    assert [(error.line, error.issues[0].code) for error in report.errors] == [(1, "invalid_json")]
+    assert [(r.line_no, r.error.code if r.error else None) for r in loaded] == [
+        (1, "invalid_json"),
+        (2, "invalid_json"),
+        (3, "invalid_json"),
+        (4, "invalid_json"),
+        (5, None),
+    ]
+    assert loaded[-1].raw == {}

@@ -16,13 +16,17 @@ pip install -e ".[dev]"
 ## Запуск
 
 ```bash
-lab-checker import data/submissions.jsonl --assignments data/assignments.json
-lab-checker import data/invalid_submissions.jsonl --assignments data/assignments.json --analyzers length
+lab-checker import data/submissions.jsonl
+lab-checker import data/submissions.jsonl --assignments data/assignments.json --analyzers length
+lab-checker import data/invalid_submissions.jsonl
 ```
 
-Команда выводит JSON с полями `accepted`, `duplicate`, `errors` (с номером строки), `reports` и
-`analysis_errors`. Код выхода 0 — файл обработан, даже если в нём есть ошибочные записи; 2 —
-ошибка конфигурации или недоступный файл. Принятый код сдач не запускается.
+В stdout выводится один JSON с полями `accepted`, `duplicate` и `errors` (у каждой ошибки есть
+`line_no`). С `--assignments` к нему добавляются `reports` и `analysis_errors`. Диагностика
+пишется в stderr как JSON с полями `code` и `message`. Коды выхода: 0 — всё успешно; 1 — есть
+ошибки в отдельных строках или при анализе, корректные записи при этом приняты; 2 — источник
+недоступен (`source_unavailable`) или ошибка конфигурации (`configuration_error`). Код сдач не
+выполняется.
 
 ## Проверки
 
@@ -40,65 +44,65 @@ pull request. Тесты идут на Python 3.12, 3.13 и 3.14. Если вс�
 
 ## Формат данных
 
-Файлы в `data/` синтетические. Исходные `submissions.jsonl`, `invalid_submissions.jsonl`,
-`assignments.json` и памятка с общим контрактом не были доступны, поэтому схема ниже — допущение
-этой реализации.
+Контракт взят из ноутбука лекции, данные в `data/` синтетические. `submissions.jsonl` содержит
+12 публичных сдач из ноутбука, `invalid_submissions.jsonl` — по одной строке на каждый вид
+ошибки, плюс дубликат и конфликт.
 
-Сдача — одна строка JSONL:
+Сдача, версия схемы 1:
 
 | Поле | Тип | Правило |
 |---|---|---|
-| `submission_id`, `assignment_id`, `student_id` | строка | непустая |
-| `timestamp` | строка | ISO 8601 с временной зоной |
-| `text`, `code` | строка | обязательны, могут быть пустыми |
-| `ai_declaration` | объект | `used`: bool, `description`: строка или `null` |
+| `schema_version` | `int` | только 1; `bool` не допускается |
+| `submission_id`, `student_id`, `assignment_id` | `str` | непустая после `strip()` |
+| `submitted_at` | `str` | ISO 8601 с часовым поясом, хранится в исходном виде |
+| `text`, `code` | `str` | хотя бы одно непустое после `strip()` |
+| `template_id` | `str` или `null` | строка непустая |
+| `ai_declaration` | объект | `used`, `tool`, `purpose`, `verified_by_student` |
 
-Неизвестные поля запрещены, типы не приводятся (`"yes"` не становится `true`). `assignment_id`
-должен существовать в `assignments.json`. Задание: `assignment_id`, `title`, `requirements`
-(список строк), `template_code` (разрешённый шаблон кода).
+При `used=true` поля `tool` и `purpose` обязательны. Неизвестные поля отклоняются, типы не
+приводятся. В JSON запрещены повторные ключи и `NaN`/`Infinity`. Пустая строка JSONL считается
+ошибкой `invalid_json`, чтение продолжается.
 
-Ошибка записи содержит `code`, `field`, `message`. Коды: `invalid_json` (ошибка формата);
-`missing_field`, `unknown_field`, `invalid_type`, `empty_value`, `invalid_string` (строка не
-кодируется в UTF-8), `invalid_timestamp`, `timestamp_without_timezone`, `unknown_assignment`
-(нарушение схемы); `submission_conflict` (конфликт идентификатора).
+Ошибка: `{"code", "field", "message"}`. Коды: `invalid_json`, `schema_error`,
+`unsupported_version`, `conflict`.
+
+Задание (`assignments.json`) — список объектов с полями `assignment_id`, `allowed_template`,
+`requirements`.
 
 ## Устройство
 
 ```
 src/lab_checker/
-  models.py        доменные объекты (frozen dataclass), хеш сдачи
-  errors.py        доменные исключения и ValidationIssue
-  schemas.py       входные модели Pydantic и преобразование в доменные объекты
-  repositories.py  интерфейсы хранения и in-memory реализации
-  sources.py       источники JSONL и in-memory (контекстные менеджеры)
-  intake.py        сервис приёма
-  analysis.py      контракт Analyzer, реестр фабрик, сервис анализа
+  models.py        доменные объекты (frozen dataclass)
+  hashing.py       канонический JSON и SHA-256
+  errors.py        SubmissionError, AnalysisFailure, ConfigurationError
+  parsing.py       разбор JSON и DTO Pydantic с to_domain()
+  repositories.py  SubmissionRepository и in-memory реализация
+  sources.py       InMemorySource и JSONLSource, open() как контекстный менеджер
+  services.py      SubmissionService и import_source
+  analysis.py      Analyzer, AnalysisContext, validate_report, реестр, AnalysisService
   analyzers.py     LengthAnalyzer, TemplateAnalyzer
-  bootstrap.py     сборка зависимостей из конфигурации
+  bootstrap.py     build_application
   adapter.py       тестовый адаптер на месте будущего HTTP
   cli.py           командная строка
 ```
 
-- **Валидация** выполняется на границе, в `schemas.py`: входная модель Pydantic в строгом режиме
-  преобразуется в неизменяемый доменный объект. Аннотации типов не проверяются во время
-  выполнения, поэтому сами по себе вход не защищают.
-- **Идемпотентность.** `submission_hash` — SHA-256 канонического содержимого без
-  `submission_id`; время приводится к UTC. Повтор с тем же хешем возвращает уже принятую сдачу,
-  другое содержимое под тем же id даёт `submission_conflict`, исходная запись не меняется.
-- **Исключения.** Пользователь видит `MalformedPayloadError`, `SchemaViolationError`,
-  `SubmissionConflictError` со списком `issues`. HTTP-коды (400, 422, 409, 201, 200) назначает
-  только `adapter.py`.
-- **Ресурс** файла открывает и закрывает вызывающий код через `with JsonlSubmissionSource(...)`;
-  сервис приёма получает только итератор записей.
-- **Анализаторы** реализуют протокол `Analyzer` и выбираются `AnalysisService` по реестру
-  фабрик. Неизвестный идентификатор анализатора — ошибка до запуска любого из них. Исключение при
-  создании или работе анализатора и отчёт, нарушающий контракт (неверные типы, evidence вне строк,
-  similarity вне [0, 1]), превращаются в `AnalysisFailure` и не мешают остальным.
+- **Валидация** выполняется на границе: строгий DTO Pydantic превращается в неизменяемый
+  доменный объект. Ошибка Pydantic приводится к `SubmissionError`.
+- **Идемпотентность.** `submission_hash` — SHA-256 канонического JSON от `asdict(submission)`.
+  Если хеш совпал, ответ `duplicate`. Если под тем же `submission_id` пришло другое содержимое,
+  возвращается `conflict`, сохранённая запись не меняется.
+- **HTTP-коды** назначает только `adapter.py`: 400, 422, 409, 201, 200.
+- **Ресурс** файла принадлежит `JSONLSource.open()`. После выхода из `with` файл закрыт и при
+  досрочном выходе, и при исключении.
+- **Анализ.** `AnalysisService.run` создаёт анализатор по имени из реестра и проверяет отчёт
+  через `validate_report`. Он также сверяет `analyzer_id` и версию. Любой сбой становится
+  `AnalysisFailure`.
 
 ### Подключение нового анализатора
 
 1. Написать класс с атрибутами `analyzer_id`, `analyzer_version` и методом
-   `analyze(submission, context) -> AnalysisReport`.
+   `analyze(submission, context) -> AnalysisReport`; отчёт собирать через `make_report`.
 2. Зарегистрировать фабрику в `build_registry()` в `bootstrap.py`.
 3. Добавить анализатор в контрактный тест `tests/test_analyzers.py`.
 
@@ -108,4 +112,3 @@ src/lab_checker/
 
 - Хранилище только в памяти: каждый запуск CLI начинает с пустого репозитория.
 - `TemplateAnalyzer` сравнивает строки точно, включая отступы и пробелы в конце строки.
-- Схема данных — допущение (см. «Формат данных»).

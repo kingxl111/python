@@ -1,105 +1,66 @@
-"""Источники записей сдач. Ресурсом источника управляет вызывающий код через ``with``."""
+"""Источники записей сдач. Ресурсом владеет контекст ``open()``."""
 
+import copy
 from collections.abc import Iterator, Sequence
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from types import TracebackType
-from typing import BinaryIO, Protocol, Self
+from typing import BinaryIO, Protocol
+
+from lab_checker.errors import SubmissionError
+from lab_checker.parsing import decode_json
 
 
 @dataclass(frozen=True, slots=True)
 class SourceRecord:
-    """Одна запись источника. ``line`` — номер строки, нумерация с 1."""
+    """Разобранный JSON либо ошибка разбора; ``line_no`` нумеруется с 1."""
 
-    line: int
-    raw: str | bytes
+    line_no: int
+    raw: object = None
+    error: SubmissionError | None = None
 
 
 class SubmissionSource(Protocol):
-    def __enter__(self) -> Self: ...
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None: ...
-
-    def records(self) -> Iterator[SourceRecord]:
-        """Записи по порядку; пустые строки пропускаются, номера строк сохраняются."""
+    def open(self) -> AbstractContextManager[Iterator[SourceRecord]]:
+        """Итератор записей допустим только внутри контекста."""
         ...
 
 
-class JsonlSubmissionSource:
-    """JSONL-файл. Строки читаются в байтах, чтобы неверная кодировка одной строки
-    стала ошибкой этой записи, а не всего импорта."""
+class InMemorySource:
+    def __init__(self, values: Sequence[object]) -> None:
+        self._values = copy.deepcopy(list(values))
+
+    @contextmanager
+    def open(self) -> Iterator[Iterator[SourceRecord]]:
+        yield (
+            SourceRecord(number, raw=copy.deepcopy(raw))
+            for number, raw in enumerate(self._values, start=1)
+        )
+
+
+class JSONLSource:
+    """Читает файл построчно в байтах: неверная кодировка или пустая строка становятся
+    ошибкой ``invalid_json`` этой строки, а чтение продолжается."""
 
     def __init__(self, path: Path) -> None:
-        self._path = path
-        self._file: BinaryIO | None = None
+        self.path = path
 
-    def __enter__(self) -> Self:
-        if self._file is not None:
-            raise RuntimeError("источник уже открыт")
-        self._file = self._path.open("rb")
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        if self._file is not None:
-            self._file.close()
-            self._file = None
-
-    @property
-    def closed(self) -> bool:
-        return self._file is None
-
-    def records(self) -> Iterator[SourceRecord]:
-        if self._file is None:
-            raise RuntimeError("источник не открыт: используйте with")
-        return self._iterate(self._file)
+    @contextmanager
+    def open(self) -> Iterator[Iterator[SourceRecord]]:
+        with self.path.open("rb") as handle:
+            yield self._records(handle)
 
     @staticmethod
-    def _iterate(file: BinaryIO) -> Iterator[SourceRecord]:
-        for number, line in enumerate(file, start=1):
-            if line.strip():
-                yield SourceRecord(line=number, raw=line.rstrip(b"\r\n"))
-
-
-class InMemorySubmissionSource:
-    """Источник из готовых строк: один элемент — одна строка JSONL."""
-
-    def __init__(self, lines: Sequence[str]) -> None:
-        self._lines = tuple(lines)
-        self._opened = False
-
-    def __enter__(self) -> Self:
-        if self._opened:
-            raise RuntimeError("источник уже открыт")
-        self._opened = True
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        self._opened = False
-
-    @property
-    def closed(self) -> bool:
-        return not self._opened
-
-    def records(self) -> Iterator[SourceRecord]:
-        if not self._opened:
-            raise RuntimeError("источник не открыт: используйте with")
-        return (
-            SourceRecord(line=number, raw=line)
-            for number, line in enumerate(self._lines, start=1)
-            if line.strip()
-        )
+    def _records(handle: BinaryIO) -> Iterator[SourceRecord]:
+        for number, line in enumerate(handle, start=1):
+            if not line.strip():
+                yield SourceRecord(
+                    number, error=SubmissionError("invalid_json", "json", "Пустая строка")
+                )
+                continue
+            try:
+                raw = decode_json(line)
+            except SubmissionError as exc:
+                yield SourceRecord(number, error=exc)
+            else:
+                yield SourceRecord(number, raw=raw)

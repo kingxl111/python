@@ -1,73 +1,43 @@
+import copy
 import json
-from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import pytest
 
-from lab_checker.analysis import AnalysisService
-from lab_checker.bootstrap import build_registry
-from lab_checker.intake import IntakeService
-from lab_checker.models import Assignment
-from lab_checker.repositories import InMemoryAssignmentCatalog, InMemorySubmissionRepository
+from lab_checker.analysis import AnalysisContext
+from lab_checker.bootstrap import Application, build_application
+from lab_checker.models import Assignment, Submission
+from lab_checker.parsing import parse_submission
 
-TEMPLATE_CODE = (
-    'def solve(numbers):\n    pass\n\n\nif __name__ == "__main__":\n    print(solve([1, 2, 3]))\n'
-)
+DATA = Path(__file__).resolve().parent.parent / "data"
+PUBLIC_SUBMISSIONS: list[dict[str, Any]] = [
+    json.loads(line) for line in (DATA / "submissions.jsonl").read_text("utf-8").splitlines()
+]
+RAW_EXAMPLE = PUBLIC_SUBMISSIONS[0]
 
-PayloadFactory = Callable[..., dict[str, Any]]
+
+def changed(**updates: Any) -> dict[str, Any]:
+    result = copy.deepcopy(RAW_EXAMPLE)
+    result.update(updates)
+    return result
+
+
+@pytest.fixture
+def submission() -> Submission:
+    return parse_submission(copy.deepcopy(RAW_EXAMPLE))
 
 
 @pytest.fixture
 def assignment() -> Assignment:
-    return Assignment(
-        assignment_id="lab-01-sum",
-        title="Сумма элементов списка",
-        requirements=("Функция solve(numbers) возвращает сумму",),
-        template_code=TEMPLATE_CODE,
-    )
+    return Assignment("assignment-01", "from typing import Iterable\n", ("Наличие функции solve",))
 
 
 @pytest.fixture
-def make_payload() -> PayloadFactory:
-    def factory(**overrides: Any) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "submission_id": "sub-001",
-            "assignment_id": "lab-01-sum",
-            "student_id": "student-01",
-            "timestamp": "2026-10-01T10:15:00+03:00",
-            "text": "Пояснение к решению.\n\nСложность O(n).",
-            "code": "def solve(numbers):\n    return sum(numbers)\n",
-            "ai_declaration": {"used": False},
-        }
-        payload.update(overrides)
-        return payload
-
-    return factory
-
-
-def to_line(payload: dict[str, Any]) -> str:
-    return json.dumps(payload, ensure_ascii=False)
+def context(assignment: Assignment) -> AnalysisContext:
+    return AnalysisContext(assignment)
 
 
 @pytest.fixture
-def repository() -> InMemorySubmissionRepository:
-    return InMemorySubmissionRepository()
-
-
-@pytest.fixture
-def catalog(assignment: Assignment) -> InMemoryAssignmentCatalog:
-    return InMemoryAssignmentCatalog([assignment])
-
-
-@pytest.fixture
-def intake(
-    repository: InMemorySubmissionRepository, catalog: InMemoryAssignmentCatalog
-) -> IntakeService:
-    return IntakeService(repository, catalog)
-
-
-@pytest.fixture
-def analysis(
-    repository: InMemorySubmissionRepository, catalog: InMemoryAssignmentCatalog
-) -> AnalysisService:
-    return AnalysisService(repository, catalog, build_registry())
+def app() -> Application:
+    return build_application()
