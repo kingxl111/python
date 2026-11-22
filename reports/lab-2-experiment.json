@@ -1,0 +1,1323 @@
+{
+  "trajectory": "Backend",
+  "level": "основной",
+  "seed": 42,
+  "environment": {
+    "python": "3.14.4 (main, Apr  7 2026, 13:13:20) [Clang 21.0.0 (clang-2100.0.123.102)]",
+    "platform": "macOS-26.5-arm64-arm-64bit-Mach-O"
+  },
+  "parameters": {
+    "repeats": 3,
+    "sizes": [
+      100,
+      1000,
+      5000
+    ],
+    "concurrency": false,
+    "memory_metric": "tracemalloc: отслеживаемые Python-аллокации, не RSS",
+    "processing_pipeline": "JSONL read -> validate -> features -> token index"
+  },
+  "config": {
+    "method": "token-ngram-jaccard",
+    "implementation": "similarity-1.0",
+    "n": 3,
+    "exclude_template": true,
+    "evidence_limit": 3,
+    "top_k": 3,
+    "threshold": 0.2,
+    "rules": [
+      {
+        "assignment_id": "assignment-01",
+        "allowed_template": "from typing import Iterable\n"
+      }
+    ]
+  },
+  "corpus_hash": "dc3a85d19994d2c90a977a1e5c30f647f04e2bec66dcecda01878b7ae43ebcae",
+  "pairs_hash": "5e8cdea451217ed335fcc1d57c560881adfadff523e0262a8ba8ccad5aa161d3",
+  "split": {
+    "entries": [
+      {
+        "submission_id": "tune-f01-v1",
+        "student_id": "tune-student-01-1",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-01",
+        "parent_id": null,
+        "transformation": "Независимое синтетическое исходное решение",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-f01-v2",
+        "student_id": "tune-student-01-1",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-01",
+        "parent_id": "tune-f01-v1",
+        "transformation": "Точная копия",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-f01-v3",
+        "student_id": "tune-student-01-3",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-01",
+        "parent_id": "tune-f01-v1",
+        "transformation": "Последовательное переименование переменных",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-f02-v1",
+        "student_id": "tune-student-02-1",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-02",
+        "parent_id": null,
+        "transformation": "Независимое синтетическое исходное решение",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-f02-v2",
+        "student_id": "tune-student-02-2",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-02",
+        "parent_id": "tune-f02-v1",
+        "transformation": "Изменение форматирования",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-f02-v3",
+        "student_id": "tune-student-02-3",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-02",
+        "parent_id": "tune-f02-v1",
+        "transformation": "Последовательное переименование переменных",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-f03-v1",
+        "student_id": "tune-student-03-1",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-03",
+        "parent_id": null,
+        "transformation": "Независимое синтетическое исходное решение",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-f03-v2",
+        "student_id": "tune-student-03-2",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-03",
+        "parent_id": "tune-f03-v1",
+        "transformation": "Точная копия",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-f03-v3",
+        "student_id": "tune-student-03-3",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-03",
+        "parent_id": "tune-f03-v1",
+        "transformation": "Последовательное переименование переменных",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-f04-v1",
+        "student_id": "tune-student-04-1",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-04",
+        "parent_id": null,
+        "transformation": "Независимое синтетическое исходное решение",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-f04-v2",
+        "student_id": "tune-student-04-2",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-04",
+        "parent_id": "tune-f04-v1",
+        "transformation": "Изменение форматирования",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-f04-v3",
+        "student_id": "tune-student-04-3",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-04",
+        "parent_id": "tune-f04-v1",
+        "transformation": "Последовательное переименование переменных",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-f05-v1",
+        "student_id": "tune-student-05-1",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-05",
+        "parent_id": null,
+        "transformation": "Независимое синтетическое исходное решение",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-f05-v2",
+        "student_id": "tune-student-05-2",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-05",
+        "parent_id": "tune-f05-v1",
+        "transformation": "Точная копия",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-f05-v3",
+        "student_id": "tune-student-05-3",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-05",
+        "parent_id": "tune-f05-v1",
+        "transformation": "Последовательное переименование переменных",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-f06-v1",
+        "student_id": "tune-student-06-1",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-06",
+        "parent_id": null,
+        "transformation": "Независимое синтетическое исходное решение",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-f06-v2",
+        "student_id": "tune-student-06-2",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-06",
+        "parent_id": "tune-f06-v1",
+        "transformation": "Изменение форматирования",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-f06-v3",
+        "student_id": "tune-student-06-3",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-family-06",
+        "parent_id": "tune-f06-v1",
+        "transformation": "Последовательное переименование переменных",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-template-1",
+        "student_id": "tune-template-student-1",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-template-family-1",
+        "parent_id": null,
+        "transformation": "Независимый синтетический пример только с общим шаблоном",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-template-2",
+        "student_id": "tune-template-student-2",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-template-family-2",
+        "parent_id": null,
+        "transformation": "Независимый синтетический пример только с общим шаблоном",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "tune-template-3",
+        "student_id": "tune-template-student-3",
+        "assignment_id": "assignment-01",
+        "family_id": "tune-template-family-3",
+        "parent_id": null,
+        "transformation": "Независимый синтетический пример только с общим шаблоном",
+        "split": "tuning"
+      },
+      {
+        "submission_id": "eval-f01-v1",
+        "student_id": "eval-student-01-1",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-01",
+        "parent_id": null,
+        "transformation": "Независимое синтетическое исходное решение",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-f01-v2",
+        "student_id": "eval-student-01-2",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-01",
+        "parent_id": "eval-f01-v1",
+        "transformation": "Точная копия",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-f01-v3",
+        "student_id": "eval-student-01-3",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-01",
+        "parent_id": "eval-f01-v1",
+        "transformation": "Последовательное переименование переменных",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-f02-v1",
+        "student_id": "eval-student-02-1",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-02",
+        "parent_id": null,
+        "transformation": "Независимое синтетическое исходное решение",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-f02-v2",
+        "student_id": "eval-student-02-2",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-02",
+        "parent_id": "eval-f02-v1",
+        "transformation": "Изменение форматирования",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-f02-v3",
+        "student_id": "eval-student-02-3",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-02",
+        "parent_id": "eval-f02-v1",
+        "transformation": "Последовательное переименование переменных",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-f03-v1",
+        "student_id": "eval-student-03-1",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-03",
+        "parent_id": null,
+        "transformation": "Независимое синтетическое исходное решение",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-f03-v2",
+        "student_id": "eval-student-03-2",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-03",
+        "parent_id": "eval-f03-v1",
+        "transformation": "Точная копия",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-f03-v3",
+        "student_id": "eval-student-03-3",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-03",
+        "parent_id": "eval-f03-v1",
+        "transformation": "Последовательное переименование переменных",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-f04-v1",
+        "student_id": "eval-student-04-1",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-04",
+        "parent_id": null,
+        "transformation": "Независимое синтетическое исходное решение",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-f04-v2",
+        "student_id": "eval-student-04-2",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-04",
+        "parent_id": "eval-f04-v1",
+        "transformation": "Изменение форматирования",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-f04-v3",
+        "student_id": "eval-student-04-3",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-04",
+        "parent_id": "eval-f04-v1",
+        "transformation": "Последовательное переименование переменных",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-f05-v1",
+        "student_id": "eval-student-05-1",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-05",
+        "parent_id": null,
+        "transformation": "Независимое синтетическое исходное решение",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-f05-v2",
+        "student_id": "eval-student-05-2",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-05",
+        "parent_id": "eval-f05-v1",
+        "transformation": "Точная копия",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-f05-v3",
+        "student_id": "eval-student-05-3",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-05",
+        "parent_id": "eval-f05-v1",
+        "transformation": "Последовательное переименование переменных",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-f06-v1",
+        "student_id": "eval-student-06-1",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-06",
+        "parent_id": null,
+        "transformation": "Независимое синтетическое исходное решение",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-f06-v2",
+        "student_id": "eval-student-06-2",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-06",
+        "parent_id": "eval-f06-v1",
+        "transformation": "Изменение форматирования",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-f06-v3",
+        "student_id": "eval-student-06-3",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-family-06",
+        "parent_id": "eval-f06-v1",
+        "transformation": "Последовательное переименование переменных",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-template-1",
+        "student_id": "eval-template-student-1",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-template-family-1",
+        "parent_id": null,
+        "transformation": "Независимый синтетический пример только с общим шаблоном",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-template-2",
+        "student_id": "eval-template-student-2",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-template-family-2",
+        "parent_id": null,
+        "transformation": "Независимый синтетический пример только с общим шаблоном",
+        "split": "evaluation"
+      },
+      {
+        "submission_id": "eval-template-3",
+        "student_id": "eval-template-student-3",
+        "assignment_id": "assignment-01",
+        "family_id": "eval-template-family-3",
+        "parent_id": null,
+        "transformation": "Независимый синтетический пример только с общим шаблоном",
+        "split": "evaluation"
+      }
+    ],
+    "families": {
+      "tuning": [
+        "tune-family-01",
+        "tune-family-02",
+        "tune-family-03",
+        "tune-family-04",
+        "tune-family-05",
+        "tune-family-06",
+        "tune-template-family-1",
+        "tune-template-family-2",
+        "tune-template-family-3"
+      ],
+      "evaluation": [
+        "eval-family-01",
+        "eval-family-02",
+        "eval-family-03",
+        "eval-family-04",
+        "eval-family-05",
+        "eval-family-06",
+        "eval-template-family-1",
+        "eval-template-family-2",
+        "eval-template-family-3"
+      ]
+    }
+  },
+  "quality": {
+    "threshold_selected_on_tuning": 0.06666666666666667,
+    "tuning": {
+      "tp": 17,
+      "fp": 6,
+      "fn": 0,
+      "tn": 3,
+      "precision": 0.7391304347826086,
+      "recall_defined": 1.0,
+      "f1_defined": 0.85,
+      "abstention_rate": 0.0,
+      "positive_abstentions": 0,
+      "recall_all_positives": 1.0
+    },
+    "evaluation": {
+      "tp": 18,
+      "fp": 6,
+      "fn": 0,
+      "tn": 3,
+      "precision": 0.75,
+      "recall_defined": 1.0,
+      "f1_defined": 0.8571428571428571,
+      "abstention_rate": 0.0,
+      "positive_abstentions": 0,
+      "recall_all_positives": 1.0
+    },
+    "evaluation_errors": [
+      {
+        "left_id": "eval-f01-v1",
+        "right_id": "eval-f03-v1",
+        "kind": "FP",
+        "score": 0.18518518518518517,
+        "threshold": 0.06666666666666667,
+        "derivation_relation": false,
+        "template_only": false
+      },
+      {
+        "left_id": "eval-f02-v1",
+        "right_id": "eval-f04-v1",
+        "kind": "FP",
+        "score": 0.125,
+        "threshold": 0.06666666666666667,
+        "derivation_relation": false,
+        "template_only": false
+      },
+      {
+        "left_id": "eval-f03-v1",
+        "right_id": "eval-f05-v1",
+        "kind": "FP",
+        "score": 0.13725490196078433,
+        "threshold": 0.06666666666666667,
+        "derivation_relation": false,
+        "template_only": false
+      },
+      {
+        "left_id": "eval-f04-v1",
+        "right_id": "eval-f06-v1",
+        "kind": "FP",
+        "score": 0.17777777777777778,
+        "threshold": 0.06666666666666667,
+        "derivation_relation": false,
+        "template_only": false
+      },
+      {
+        "left_id": "eval-f05-v1",
+        "right_id": "eval-f06-v1",
+        "kind": "FP",
+        "score": 0.2647058823529412,
+        "threshold": 0.06666666666666667,
+        "derivation_relation": false,
+        "template_only": false
+      },
+      {
+        "left_id": "eval-f01-v1",
+        "right_id": "eval-f06-v1",
+        "kind": "FP",
+        "score": 0.6333333333333333,
+        "threshold": 0.06666666666666667,
+        "derivation_relation": false,
+        "template_only": false
+      }
+    ],
+    "pairs": [
+      {
+        "left_id": "tune-f01-v1",
+        "right_id": "tune-f01-v3",
+        "split": "tuning",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.06666666666666667,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f01-v2",
+        "right_id": "tune-f01-v3",
+        "split": "tuning",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.06666666666666667,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f02-v1",
+        "right_id": "tune-f02-v2",
+        "split": "tuning",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 1.0,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f02-v1",
+        "right_id": "tune-f02-v3",
+        "split": "tuning",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.15151515151515152,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f02-v2",
+        "right_id": "tune-f02-v3",
+        "split": "tuning",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.15151515151515152,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f03-v1",
+        "right_id": "tune-f03-v2",
+        "split": "tuning",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 1.0,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f03-v1",
+        "right_id": "tune-f03-v3",
+        "split": "tuning",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.20833333333333334,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f03-v2",
+        "right_id": "tune-f03-v3",
+        "split": "tuning",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.20833333333333334,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f04-v1",
+        "right_id": "tune-f04-v2",
+        "split": "tuning",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 1.0,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f04-v1",
+        "right_id": "tune-f04-v3",
+        "split": "tuning",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.07246376811594203,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f04-v2",
+        "right_id": "tune-f04-v3",
+        "split": "tuning",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.07246376811594203,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f05-v1",
+        "right_id": "tune-f05-v2",
+        "split": "tuning",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 1.0,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f05-v1",
+        "right_id": "tune-f05-v3",
+        "split": "tuning",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.14285714285714285,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f05-v2",
+        "right_id": "tune-f05-v3",
+        "split": "tuning",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.14285714285714285,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f06-v1",
+        "right_id": "tune-f06-v2",
+        "split": "tuning",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 1.0,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f06-v1",
+        "right_id": "tune-f06-v3",
+        "split": "tuning",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.2,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f06-v2",
+        "right_id": "tune-f06-v3",
+        "split": "tuning",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.2,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f01-v1",
+        "right_id": "tune-f03-v1",
+        "split": "tuning",
+        "derivation_relation": false,
+        "template_only": false,
+        "score": 0.10416666666666667,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f02-v1",
+        "right_id": "tune-f04-v1",
+        "split": "tuning",
+        "derivation_relation": false,
+        "template_only": false,
+        "score": 0.14285714285714285,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f03-v1",
+        "right_id": "tune-f05-v1",
+        "split": "tuning",
+        "derivation_relation": false,
+        "template_only": false,
+        "score": 0.15217391304347827,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f04-v1",
+        "right_id": "tune-f06-v1",
+        "split": "tuning",
+        "derivation_relation": false,
+        "template_only": false,
+        "score": 0.13725490196078433,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f05-v1",
+        "right_id": "tune-f06-v1",
+        "split": "tuning",
+        "derivation_relation": false,
+        "template_only": false,
+        "score": 0.36363636363636365,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-f01-v1",
+        "right_id": "tune-f06-v1",
+        "split": "tuning",
+        "derivation_relation": false,
+        "template_only": false,
+        "score": 0.25,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-template-1",
+        "right_id": "tune-template-2",
+        "split": "tuning",
+        "derivation_relation": false,
+        "template_only": true,
+        "score": 0.0,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-template-1",
+        "right_id": "tune-template-3",
+        "split": "tuning",
+        "derivation_relation": false,
+        "template_only": true,
+        "score": 0.0,
+        "status": "ok"
+      },
+      {
+        "left_id": "tune-template-2",
+        "right_id": "tune-template-3",
+        "split": "tuning",
+        "derivation_relation": false,
+        "template_only": true,
+        "score": 0.0,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f01-v1",
+        "right_id": "eval-f01-v2",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 1.0,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f01-v1",
+        "right_id": "eval-f01-v3",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.08695652173913043,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f01-v2",
+        "right_id": "eval-f01-v3",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.08695652173913043,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f02-v1",
+        "right_id": "eval-f02-v2",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 1.0,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f02-v1",
+        "right_id": "eval-f02-v3",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.25925925925925924,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f02-v2",
+        "right_id": "eval-f02-v3",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.25925925925925924,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f03-v1",
+        "right_id": "eval-f03-v2",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 1.0,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f03-v1",
+        "right_id": "eval-f03-v3",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.2,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f03-v2",
+        "right_id": "eval-f03-v3",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.2,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f04-v1",
+        "right_id": "eval-f04-v2",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 1.0,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f04-v1",
+        "right_id": "eval-f04-v3",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.2608695652173913,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f04-v2",
+        "right_id": "eval-f04-v3",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.2608695652173913,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f05-v1",
+        "right_id": "eval-f05-v2",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 1.0,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f05-v1",
+        "right_id": "eval-f05-v3",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.15151515151515152,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f05-v2",
+        "right_id": "eval-f05-v3",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.15151515151515152,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f06-v1",
+        "right_id": "eval-f06-v2",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 1.0,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f06-v1",
+        "right_id": "eval-f06-v3",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.06666666666666667,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f06-v2",
+        "right_id": "eval-f06-v3",
+        "split": "evaluation",
+        "derivation_relation": true,
+        "template_only": false,
+        "score": 0.06666666666666667,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f01-v1",
+        "right_id": "eval-f03-v1",
+        "split": "evaluation",
+        "derivation_relation": false,
+        "template_only": false,
+        "score": 0.18518518518518517,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f02-v1",
+        "right_id": "eval-f04-v1",
+        "split": "evaluation",
+        "derivation_relation": false,
+        "template_only": false,
+        "score": 0.125,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f03-v1",
+        "right_id": "eval-f05-v1",
+        "split": "evaluation",
+        "derivation_relation": false,
+        "template_only": false,
+        "score": 0.13725490196078433,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f04-v1",
+        "right_id": "eval-f06-v1",
+        "split": "evaluation",
+        "derivation_relation": false,
+        "template_only": false,
+        "score": 0.17777777777777778,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f05-v1",
+        "right_id": "eval-f06-v1",
+        "split": "evaluation",
+        "derivation_relation": false,
+        "template_only": false,
+        "score": 0.2647058823529412,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-f01-v1",
+        "right_id": "eval-f06-v1",
+        "split": "evaluation",
+        "derivation_relation": false,
+        "template_only": false,
+        "score": 0.6333333333333333,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-template-1",
+        "right_id": "eval-template-2",
+        "split": "evaluation",
+        "derivation_relation": false,
+        "template_only": true,
+        "score": 0.0,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-template-1",
+        "right_id": "eval-template-3",
+        "split": "evaluation",
+        "derivation_relation": false,
+        "template_only": true,
+        "score": 0.0,
+        "status": "ok"
+      },
+      {
+        "left_id": "eval-template-2",
+        "right_id": "eval-template-3",
+        "split": "evaluation",
+        "derivation_relation": false,
+        "template_only": true,
+        "score": 0.0,
+        "status": "ok"
+      }
+    ]
+  },
+  "diagnostics": {
+    "renaming": {
+      "left_id": "eval-f01-v1",
+      "right_id": "eval-f01-v3",
+      "score": 0.08695652173913043,
+      "demonstration_threshold": 0.5,
+      "kind": "FN при демонстрационном пороге 0.5"
+    },
+    "template": {
+      "left_id": "eval-template-1",
+      "right_id": "eval-template-2",
+      "score_without_exclusion": 0.09523809523809523,
+      "score_with_exclusion": 0.0,
+      "config_hash_without_exclusion": "457ca781174d77f4f6edafab13dc4902ccf68ec3568792da4e26349231a2353a",
+      "config_hash_with_exclusion": "2f866c2531a7260646378589e846da9550b725c464fabee9948d908c6d569470",
+      "index_version_without_exclusion": "60d06ed41329993fe7c19fd25fa9a47c9732fd230584beb1968d3467376a372e",
+      "index_version_with_exclusion": "7d1a6d0d2a5ebb8f9eb89977e91f2925610e2b164e768afa6e6c4d8836ca1426"
+    },
+    "independent_standard_solution": {
+      "left_id": "eval-f05-v1",
+      "right_id": "eval-f06-v1",
+      "score": 0.2647058823529412,
+      "kind": "FP: независимое происхождение не следует из совпадения представления"
+    }
+  },
+  "index": {
+    "version": "7d1a6d0d2a5ebb8f9eb89977e91f2925610e2b164e768afa6e6c4d8836ca1426",
+    "postings": 282,
+    "posting_references": 1002,
+    "policy": "Индекс возвращает только пары с общим признаком; полный перебор также выдаёт score=0."
+  },
+  "processing_benchmark": [
+    {
+      "records": 100,
+      "all_unordered_pairs_upper_bound": 4950,
+      "repeats": 3,
+      "seconds_runs": [
+        0.023921917003463022,
+        0.024558874996728264,
+        0.02456237499427516
+      ],
+      "seconds_median": 0.024558874996728264,
+      "peak_bytes_runs": [
+        5226940,
+        5224189,
+        5223516
+      ],
+      "python_peak_bytes_median": 5224189
+    },
+    {
+      "records": 1000,
+      "all_unordered_pairs_upper_bound": 499500,
+      "repeats": 3,
+      "seconds_runs": [
+        0.25522354200074915,
+        0.25284737499896437,
+        0.24804137498722412
+      ],
+      "seconds_median": 0.25284737499896437,
+      "peak_bytes_runs": [
+        50164419,
+        50165508,
+        50163650
+      ],
+      "python_peak_bytes_median": 50164419
+    },
+    {
+      "records": 5000,
+      "all_unordered_pairs_upper_bound": 12497500,
+      "repeats": 3,
+      "seconds_runs": [
+        1.3963475420023315,
+        1.3556609590013977,
+        1.369499000007636
+      ],
+      "seconds_median": 1.369499000007636,
+      "peak_bytes_runs": [
+        246537502,
+        246537076,
+        246536066
+      ],
+      "python_peak_bytes_median": 246537076
+    }
+  ],
+  "fixed_retrieval": {
+    "queries": [
+      "tune-f01-v1",
+      "tune-f01-v2",
+      "tune-f01-v3",
+      "tune-f02-v1",
+      "tune-f02-v2",
+      "tune-f02-v3",
+      "tune-f03-v1",
+      "tune-f03-v2",
+      "tune-f03-v3",
+      "tune-f04-v1",
+      "tune-f04-v2",
+      "tune-f04-v3",
+      "tune-f05-v1",
+      "tune-f05-v2",
+      "tune-f05-v3",
+      "tune-f06-v1",
+      "tune-f06-v2",
+      "tune-f06-v3",
+      "tune-template-1",
+      "tune-template-2",
+      "tune-template-3",
+      "eval-f01-v1",
+      "eval-f01-v2",
+      "eval-f01-v3",
+      "eval-f02-v1",
+      "eval-f02-v2",
+      "eval-f02-v3",
+      "eval-f03-v1",
+      "eval-f03-v2",
+      "eval-f03-v3",
+      "eval-f04-v1",
+      "eval-f04-v2",
+      "eval-f04-v3",
+      "eval-f05-v1",
+      "eval-f05-v2",
+      "eval-f05-v3",
+      "eval-f06-v1",
+      "eval-f06-v2",
+      "eval-f06-v3",
+      "eval-template-1",
+      "eval-template-2",
+      "eval-template-3"
+    ],
+    "top_k": 3,
+    "candidate_reference": "все допустимые кандидаты полного перебора со score > 0",
+    "candidate_recall": 1.0,
+    "speedup_median": 1.2471891461875295,
+    "strategies": {
+      "full": {
+        "seconds_runs": [
+          0.03436437500931788,
+          0.09172208300151397,
+          0.033345417003147304
+        ],
+        "seconds_median": 0.03436437500931788,
+        "examined_comparisons_runs_total": 5160
+      },
+      "index": {
+        "seconds_runs": [
+          0.02781025000149384,
+          0.027498666997416876,
+          0.02755345900368411
+        ],
+        "seconds_median": 0.02755345900368411,
+        "examined_comparisons_runs_total": 3912
+      }
+    }
+  },
+  "retrieval_benchmark": [
+    {
+      "records": 100,
+      "index_version": "59dd7ff2c9e9ee77897d1cd903b483f753ecae84a8f7d46c679fa474baf145fd",
+      "postings": 5551,
+      "posting_references": 5913,
+      "queries": [
+        "load-000000",
+        "load-000005",
+        "load-000010",
+        "load-000015",
+        "load-000020",
+        "load-000025",
+        "load-000030",
+        "load-000035",
+        "load-000040",
+        "load-000045",
+        "load-000050",
+        "load-000055",
+        "load-000060",
+        "load-000065",
+        "load-000070",
+        "load-000075",
+        "load-000080",
+        "load-000085",
+        "load-000090",
+        "load-000095"
+      ],
+      "top_k": 3,
+      "candidate_reference": "все допустимые кандидаты полного перебора со score > 0",
+      "candidate_recall": 1.0,
+      "speedup_median": 3.2131660987536383,
+      "strategies": {
+        "full": {
+          "seconds_runs": [
+            0.030304041007184424,
+            0.03152629200485535,
+            0.03023145800398197
+          ],
+          "seconds_median": 0.030304041007184424,
+          "examined_comparisons_runs_total": 5940
+        },
+        "index": {
+          "seconds_runs": [
+            0.009388917009346187,
+            0.00943120899319183,
+            0.009872249996988103
+          ],
+          "seconds_median": 0.00943120899319183,
+          "examined_comparisons_runs_total": 1140
+        }
+      }
+    },
+    {
+      "records": 1000,
+      "index_version": "a5b3ce101370bceef13c5ad43891204421329094377618ed317667ae01fa4ad5",
+      "postings": 55609,
+      "posting_references": 59640,
+      "queries": [
+        "load-000000",
+        "load-000050",
+        "load-000100",
+        "load-000150",
+        "load-000200",
+        "load-000250",
+        "load-000300",
+        "load-000350",
+        "load-000400",
+        "load-000450",
+        "load-000500",
+        "load-000550",
+        "load-000600",
+        "load-000650",
+        "load-000700",
+        "load-000750",
+        "load-000800",
+        "load-000850",
+        "load-000900",
+        "load-000950"
+      ],
+      "top_k": 3,
+      "candidate_reference": "все допустимые кандидаты полного перебора со score > 0",
+      "candidate_recall": 1.0,
+      "speedup_median": 3.3455420453127496,
+      "strategies": {
+        "full": {
+          "seconds_runs": [
+            0.3332060829998227,
+            0.3225739589979639,
+            0.31977054200251587
+          ],
+          "seconds_median": 0.3225739589979639,
+          "examined_comparisons_runs_total": 59940
+        },
+        "index": {
+          "seconds_runs": [
+            0.10750641599588562,
+            0.0964190420054365,
+            0.09590050000406336
+          ],
+          "seconds_median": 0.0964190420054365,
+          "examined_comparisons_runs_total": 11940
+        }
+      }
+    },
+    {
+      "records": 5000,
+      "index_version": "038538444cbc654e943ca9d3ddcaec2932725dc16123ba9035d7fcd1d4a5ae20",
+      "postings": 278514,
+      "posting_references": 300507,
+      "queries": [
+        "load-000000",
+        "load-000250",
+        "load-000500",
+        "load-000750",
+        "load-001000",
+        "load-001250",
+        "load-001500",
+        "load-001750",
+        "load-002000",
+        "load-002250",
+        "load-002500",
+        "load-002750",
+        "load-003000",
+        "load-003250",
+        "load-003500",
+        "load-003750",
+        "load-004000",
+        "load-004250",
+        "load-004500",
+        "load-004750"
+      ],
+      "top_k": 3,
+      "candidate_reference": "все допустимые кандидаты полного перебора со score > 0",
+      "candidate_recall": 1.0,
+      "speedup_median": 2.984762063552456,
+      "strategies": {
+        "full": {
+          "seconds_runs": [
+            1.777690207993146,
+            1.7832645829912508,
+            1.7590927920100512
+          ],
+          "seconds_median": 1.777690207993146,
+          "examined_comparisons_runs_total": 299940
+        },
+        "index": {
+          "seconds_runs": [
+            0.5714757919922704,
+            0.5955885829898762,
+            0.6058595829963451
+          ],
+          "seconds_median": 0.5955885829898762,
+          "examined_comparisons_runs_total": 59940
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "Небольшой синтетический корпус; метрики не переносятся на реальных студентов.",
+    "Пары одной сдачи не являются независимыми наблюдениями.",
+    "Score измеряет представление кода и не доказывает нарушение или корректность программы.",
+    "Сервис использует снимок корпуса; после изменения корпуса или конфигурации нужен новый сервис."
+  ]
+}

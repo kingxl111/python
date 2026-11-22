@@ -218,3 +218,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Локальные файлы macOS и IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Локальные варианты окружения; пример без секретов можно версионировать
+.env.*
+!.env.example

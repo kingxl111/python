@@ -1,7 +1,8 @@
 # lab-checker
 
-Учебная система онлайн-школы: приём сдач лабораторных, валидация и запуск заменяемых анализаторов.
-Текущее состояние — ЛР 1, траектория Backend, основной уровень.
+Учебная система онлайн-школы: приём сдач, валидация, заменяемые анализаторы и поиск сходства.
+Текущее состояние — ЛР 2, траектория Backend, основной уровень. Сданный код анализируется только как
+данные и никогда не выполняется.
 
 ## Установка
 
@@ -15,6 +16,8 @@ pip install -e ".[dev]"
 
 ## Запуск
 
+Импорт сдач и анализаторы ЛР 1:
+
 ```bash
 lab-checker import data/submissions.jsonl
 lab-checker import data/submissions.jsonl --assignments data/assignments.json --analyzers length
@@ -22,13 +25,27 @@ lab-checker import data/invalid_submissions.jsonl
 ```
 
 В stdout выводится один JSON с полями `accepted`, `duplicate` и `errors` (у каждой ошибки есть
-`line_no`). С `--assignments` к нему добавляются `reports` и `analysis_errors`. Диагностика
-пишется в stderr как JSON с полями `code` и `message`. Коды выхода: 0 — всё успешно; 1 — есть
-ошибки в отдельных строках или при анализе, корректные записи при этом приняты; 2 — источник
-недоступен (`source_unavailable`) или ошибка конфигурации (`configuration_error`). Код сдач не
-выполняется.
+`line_no`). С `--assignments` добавляются `reports` и `analysis_errors`. Диагностика пишется в stderr.
+Коды выхода: 0 — всё успешно; 1 — ошибки отдельных строк или анализа при частичном успехе;
+2 — недоступный источник (`source_unavailable`) или конфигурация (`configuration_error`).
 
-## Проверки
+Поиск top-k похожих сдач из корпуса ЛР 2:
+
+```bash
+lab-checker compare data/similarity_corpus.jsonl \
+  --assignments data/assignments.json \
+  --submission-id tune-f01-v1 --strategy full --top-k 3
+lab-checker compare data/similarity_corpus.jsonl \
+  --assignments data/assignments.json \
+  --submission-id tune-f01-v1 --strategy index --top-k 3
+```
+
+`full` выполняет полный перебор и включает определённые нулевые score. `index` сначала объединяет
+postings общих 3-грамм и возвращает только положительные кандидаты. Ответ содержит `candidates`,
+двусторонние evidence, сведения о шаблоне, `index_version`, число проверенных кандидатов и ошибки.
+Self-match, другой `assignment_id` и другая версия того же студента исключаются.
+
+## Проверки и эксперимент
 
 ```bash
 ruff check .
@@ -36,17 +53,22 @@ ruff format --check .
 mypy src tests scripts
 pytest
 python scripts/benchmark_import.py
+python scripts/build_similarity_corpus.py
+python scripts/run_similarity_experiment.py --repeats 3 --seed 42
 ```
 
-Те же проверки запускает GitHub Actions `.github/workflows/ci.yml` на push в `main` и на
-pull request. Тесты идут на Python 3.12, 3.13 и 3.14. Если все проверки прошли, отдельная
-джоба собирает пакет, ставит wheel в чистое окружение и запускает CLI на `data/`.
+Эксперимент создаёт `reports/lab-2-experiment.json`: конфигурацию, хеши корпуса и разметки, split,
+порог, метрики, ошибки, версии индекса и сырые повторы измерений. Нагрузочные записи синтетические,
+создаются во временном каталоге и не участвуют в оценке качества. Требуется не меньше трёх повторов.
+Человекочитаемый отчёт — `reports/lab-2.md`.
+
+Те же статические проверки и тесты запускает GitHub Actions на Python 3.12–3.14. Отдельная джоба
+собирает wheel, устанавливает его в чистое окружение и запускает CLI.
 
 ## Формат данных
 
-Контракт взят из ноутбука лекции, данные в `data/` синтетические. `submissions.jsonl` содержит
-12 публичных сдач из ноутбука, `invalid_submissions.jsonl` — по одной строке на каждый вид
-ошибки, плюс дубликат и конфликт.
+Все данные в `data/` синтетические. `submissions.jsonl` содержит 12 публичных сдач из ноутбука,
+`invalid_submissions.jsonl` — ошибки, дубликат и конфликт.
 
 Сдача, версия схемы 1:
 
@@ -61,54 +83,57 @@ pull request. Тесты идут на Python 3.12, 3.13 и 3.14. Если вс�
 
 При `used=true` поля `tool` и `purpose` обязательны. Неизвестные поля отклоняются, типы не
 приводятся. В JSON запрещены повторные ключи и `NaN`/`Infinity`. Пустая строка JSONL считается
-ошибкой `invalid_json`, чтение продолжается.
-
-Ошибка: `{"code", "field", "message"}`. Коды: `invalid_json`, `schema_error`,
-`unsupported_version`, `conflict`.
+ошибкой `invalid_json`, чтение продолжается. Ошибка: `{"code", "field", "message"}`.
 
 Задание (`assignments.json`) — список объектов с полями `assignment_id`, `allowed_template`,
 `requirements`.
+
+Корпус `similarity_corpus.jsonl` добавляет к каждой сдаче:
+
+| Поле | Назначение |
+|---|---|
+| `family_id` | Семейство общего происхождения; целиком находится в одном split |
+| `parent_id` | Исходная версия внутри семейства или `null` |
+| `transformation` | Синтетическое происхождение и преобразование варианта |
+| `split` | `tuning` для выбора порога или `evaluation` для итоговой оценки |
+
+Эти поля принадлежат отдельному DTO корпуса и не меняют схему/хеш `Submission`. В
+`similarity_pairs.jsonl` каждая строка содержит `left_id`, `right_id`, `derivation_relation` и
+`template_only`. Разметка описывает построение учебного примера, а не вердикт о плагиате.
 
 ## Устройство
 
 ```
 src/lab_checker/
-  models.py        доменные объекты (frozen dataclass)
-  hashing.py       канонический JSON и SHA-256
-  errors.py        SubmissionError, AnalysisFailure, ConfigurationError
-  parsing.py       разбор JSON и DTO Pydantic с to_domain()
-  repositories.py  SubmissionRepository и in-memory реализация
-  sources.py       InMemorySource и JSONLSource, open() как контекстный менеджер
-  services.py      SubmissionService и import_source
-  analysis.py      Analyzer, AnalysisContext, validate_report, реестр, AnalysisService
-  analyzers.py     LengthAnalyzer, TemplateAnalyzer
-  bootstrap.py     build_application
-  adapter.py       тестовый адаптер на месте будущего HTTP
-  cli.py           командная строка
+  models.py              доменные объекты ЛР 1
+  parsing.py             строгие DTO Pydantic и преобразование в домен
+  sources.py             ленивые JSONL и in-memory источники
+  services.py            приём сдач
+  repositories.py        in-memory хранение и итерация снимка
+  analysis.py            Analyzer, AnalysisContext, реестр, проверка отчёта
+  analyzers.py           LengthAnalyzer и TemplateAnalyzer
+  templates.py           точные диапазоны разрешённого шаблона
+  similarity.py          tokenize, n-граммы, Jaccard и двусторонние evidence
+  corpus.py              DTO корпуса, потоковое чтение, manifest и разметка
+  comparison.py          сервис top-k, парный кеш и инвертированный индекс
+  similarity_analyzer.py адаптер сходства к общему Analyzer
+  evaluation.py          порог, матрица ошибок, precision/recall/F1 и отказы
+  bootstrap.py           сборка зависимостей
+  adapter.py             тестовый адаптер вместо HTTP
+  cli.py                 команды import и compare
 ```
 
-- **Валидация** выполняется на границе: строгий DTO Pydantic превращается в неизменяемый
-  доменный объект. Ошибка Pydantic приводится к `SubmissionError`.
-- **Идемпотентность.** `submission_hash` — SHA-256 канонического JSON от `asdict(submission)`.
-  Если хеш совпал, ответ `duplicate`. Если под тем же `submission_id` пришло другое содержимое,
-  возвращается `conflict`, сохранённая запись не меняется.
-- **HTTP-коды** назначает только `adapter.py`: 400, 422, 409, 201, 200.
-- **Ресурс** файла принадлежит `JSONLSource.open()`. После выхода из `with` файл закрыт и при
-  досрочном выходе, и при исключении.
-- **Анализ.** `AnalysisService.run` создаёт анализатор по имени из реестра и проверяет отчёт
-  через `validate_report`. Он также сверяет `analyzer_id` и версию. Любой сбой становится
-  `AnalysisFailure`.
-
-### Подключение нового анализатора
-
-1. Написать класс с атрибутами `analyzer_id`, `analyzer_version` и методом
-   `analyze(submission, context) -> AnalysisReport`; отчёт собирать через `make_report`.
-2. Зарегистрировать фабрику в `build_registry()` в `bootstrap.py`.
-3. Добавить анализатор в контрактный тест `tests/test_analyzers.py`.
-
-`AnalysisService` при этом не меняется.
+Ключ парного кеша включает SHA-256 обеих версий сдачи и полную конфигурацию. Evidence ориентированы,
+поэтому обратный порядок пары имеет отдельный ключ. Индекс версионируется содержимым корпуса,
+реализацией и конфигурацией. Сервис работает с фиксированным снимком: после изменения корпуса или
+шаблона создаётся новый экземпляр.
 
 ## Ограничения
 
-- Хранилище только в памяти: каждый запуск CLI начинает с пустого репозитория.
-- `TemplateAnalyzer` сравнивает строки точно, включая отступы и пробелы в конце строки.
+- Хранилище, кеш и индекс находятся в памяти; между запусками CLI состояние не сохраняется.
+- Потоковое чтение не ограничивает память полного индекса: при N документах и L признаках возможны
+  до O(N·L) хранимых связей, плюс координаты и кеш.
+- Score — сигнал для ручного разбора, а не доказательство нарушения, общего происхождения или
+  корректности кода. Решение принимает преподаватель.
+- Метрики получены на маленьком синтетическом корпусе и не переносятся на реальных студентов.
+- AST-нормализация, TF-IDF и детектор ИИ не входят в выбранный основной Backend-вариант.

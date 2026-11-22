@@ -74,3 +74,30 @@ def test_bad_configuration(capsys: pytest.CaptureFixture[str], args: tuple[str, 
     assert code == 2
     assert result == {}
     assert json.loads(err)["code"] == "configuration_error"
+
+
+def test_compare_corpus_with_index(capsys: pytest.CaptureFixture[str]) -> None:
+    code = main(
+        [
+            "compare",
+            str(DATA / "similarity_corpus.jsonl"),
+            "--assignments",
+            ASSIGNMENTS,
+            "--submission-id",
+            "tune-f01-v1",
+            "--strategy",
+            "index",
+            "--top-k",
+            "3",
+        ]
+    )
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+
+    assert code == 0
+    assert result["strategy"] == "index"
+    assert len(result["candidates"]) == 3
+    assert result["candidates"][0]["score"] == 1
+    assert all(item["right_id"] != "tune-f01-v1" for item in result["candidates"])
+    assert result["index_version"]
+    assert result["errors"] == []
