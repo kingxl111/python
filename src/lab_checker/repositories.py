@@ -1,5 +1,6 @@
 """Контракт хранения сдач и in-memory реализация."""
 
+from collections.abc import Iterator
 from typing import Protocol
 
 from lab_checker.errors import SubmissionError
@@ -23,6 +24,9 @@ class InMemorySubmissionRepository:
         if submission.submission_id in self._items:
             raise SubmissionError("conflict", "submission_id", "Идентификатор уже сохранён")
         self._items[submission.submission_id] = submission
+
+    def iter(self) -> Iterator[Submission]:
+        return iter(tuple(self._items[key] for key in sorted(self._items)))
 
     def __len__(self) -> int:
         return len(self._items)

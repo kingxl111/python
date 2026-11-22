@@ -3,24 +3,11 @@
 from lab_checker.analysis import AnalysisContext, make_report
 from lab_checker.errors import AnalysisFailure
 from lab_checker.models import AnalysisReport, Evidence, Finding, Submission
+from lab_checker.templates import template_ranges as template_ranges
 
 
 def nonempty_line_numbers(text: str) -> tuple[int, ...]:
     return tuple(number for number, line in enumerate(text.splitlines(), 1) if line.strip())
-
-
-def template_ranges(source_code: str, template: str) -> tuple[tuple[int, int], ...]:
-    """Диапазоны строк кода, где шаблон совпадает целиком; пробелы не нормализуются."""
-    if not template.strip():
-        return ()
-    source_lines = source_code.splitlines()
-    template_lines = template.splitlines()
-    width = len(template_lines)
-    return tuple(
-        (index + 1, index + width)
-        for index in range(len(source_lines) - width + 1)
-        if source_lines[index : index + width] == template_lines
-    )
 
 
 class LengthAnalyzer:

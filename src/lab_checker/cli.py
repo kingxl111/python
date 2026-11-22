@@ -1,4 +1,4 @@
-"""Командная строка: импорт JSONL-файла сдач и, при наличии заданий, их анализ.
+"""Командная строка: приём сдач и сравнение версий из корпуса ЛР 2.
 
 Коды завершения: 0 — всё успешно; 1 — ошибки отдельных строк или анализа;
 2 — источник или конфигурация недоступны.
@@ -18,15 +18,18 @@ from lab_checker.bootstrap import (
     Application,
     build_application,
     load_assignments,
+    similarity_config,
 )
-from lab_checker.errors import AnalysisFailure, ConfigurationError
+from lab_checker.comparison import ComparisonService
+from lab_checker.corpus import load_corpus
+from lab_checker.errors import AnalysisFailure, ConfigurationError, SubmissionError
 from lab_checker.models import Assignment
 from lab_checker.services import import_source
 from lab_checker.sources import JSONLSource
 
 
 def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(prog="lab-checker", description="Приём учебных сдач из JSONL")
+    parser = argparse.ArgumentParser(prog="lab-checker", description="Учебный анализ сдач")
     commands = parser.add_subparsers(dest="command", required=True)
     run = commands.add_parser("import", help="импорт файла сдач")
     run.add_argument("path", type=Path, help="JSONL-файл сдач")
@@ -35,6 +38,14 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         "--analyzers",
         default=",".join(DEFAULT_ANALYZERS),
         help="имена анализаторов через запятую (по умолчанию: %(default)s)",
+    )
+    compare = commands.add_parser("compare", help="top-k похожих сдач из корпуса ЛР 2")
+    compare.add_argument("path", type=Path, help="JSONL-файл корпуса с family_id")
+    compare.add_argument("--assignments", type=Path, required=True, help="JSON-файл заданий")
+    compare.add_argument("--submission-id", required=True, help="сдача, для которой ищутся пары")
+    compare.add_argument("--top-k", type=int, default=3, help="число кандидатов")
+    compare.add_argument(
+        "--strategy", choices=("full", "index"), default="full", help="способ отбора кандидатов"
     )
     return parser.parse_args(argv)
 
@@ -74,12 +85,16 @@ def _analyze(
     return reports, errors
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    args = _parse_args(argv)
+def _run_import(args: argparse.Namespace) -> int:
     names = tuple(dict.fromkeys(item.strip() for item in args.analyzers.split(",") if item.strip()))
     try:
-        app = build_application(AppConfig(analyzers=names))
         assignments = load_assignments(args.assignments) if args.assignments else None
+        config = similarity_config(assignments) if assignments is not None else None
+        app = build_application(
+            AppConfig(analyzers=names, similarity=config)
+            if config is not None
+            else AppConfig(names)
+        )
     except ConfigurationError as exc:
         return _fail("configuration_error", str(exc))
 
@@ -95,3 +110,34 @@ def main(argv: Sequence[str] | None = None) -> int:
         failed = failed or bool(result["analysis_errors"])
     print(json.dumps(result, ensure_ascii=False))
     return 1 if failed else 0
+
+
+def _run_compare(args: argparse.Namespace) -> int:
+    try:
+        assignments = load_assignments(args.assignments)
+        loaded = load_corpus(args.path)
+        service = ComparisonService(loaded.repository, similarity_config(assignments))
+        result = service.top_k(args.submission_id, args.top_k, args.strategy)
+    except OSError as exc:
+        return _fail("source_unavailable", str(exc))
+    except (ConfigurationError, SubmissionError, ValueError, KeyError) as exc:
+        return _fail("configuration_error", str(exc))
+    errors = [*loaded.errors, *(asdict(error) for error in result.errors)]
+    output = {
+        "query_id": result.query_id,
+        "strategy": result.strategy,
+        "index_version": result.index_version,
+        "examined": result.examined,
+        "insufficient_data": result.insufficient_data,
+        "candidates": [asdict(candidate) for candidate in result.candidates],
+        "errors": errors,
+    }
+    print(json.dumps(output, ensure_ascii=False))
+    return 1 if errors else 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = _parse_args(argv)
+    if args.command == "compare":
+        return _run_compare(args)
+    return _run_import(args)
